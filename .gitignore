@@ -1,0 +1,15 @@
+__pycache__
+.vscode/
+retina_main.spec
+build
+dist
+old/
+*.exe
+model/*.h5
+data/*.mp4
+data/*.mov
+data/*.avi
+results/*.mp4
+*.camrec
+*.camproj
+
