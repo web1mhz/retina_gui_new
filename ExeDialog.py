@@ -149,10 +149,8 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
         if self.results:
             # csv_path = os.path.join(self.results, created_time + '_result.csv')
-            csv_path = os.path.join(self.results, self.FILE_PREFIX + '_result_' + self.created + '.csv')
-            names = ['label','accuracy','box_cnt','xmin','ymin', 'xmax', 'ymax']   
-            result_csv = pd.DataFrame(self.predict_results, columns=names, index=None)                     
-            result_csv.to_csv(csv_path)
+            csv_path = os.path.join(self.results, self.FILE_PREFIX + '_result_' + self.created + '.csv')                           
+            self.predict_results.to_csv(csv_path)
             self.append_log_msg(csv_path + ' 에 모델평가 결과 저장완료')
             self.exitButtonDlg.setEnabled(True)       
     
@@ -219,7 +217,7 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         
         frame_cnt = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        print('총 Frame 갯수:', frame_cnt)
+        print('총 Frame 갯수:', frame_cnt) # 출력 1
 
         # 2. 출력정보 동영상 플레임 수 =====================================
         create_date = f'동영상 생성날짜: {real_ctime}'
@@ -233,14 +231,15 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
         
         box_cnt_1=[]
-        name_1=[]
-        accuracy_1=[]
-        boxbnd_1=[]
-        predict_results=[] 
-        result_all =[]
-       
+        # name_1=[]
+        # accuracy_1=[]
+        # boxbnd_1=[]
+        alls=[]        
         
-        while frame_cnt > (total_frame - 30):
+        predict_results=pd.DataFrame()      
+
+        
+        while True: #frame_cnt > (total_frame - 10):
 
             hasFrame, image_frame = cap.read()
             if not hasFrame:
@@ -249,15 +248,13 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
             detected_image, cnt, c_name, c_accuracy, c_boxbnd, all_ = self.get_detected_image_retina(model, image_frame, total_frame, frame_cnt, use_copied_array=False, is_print=True)
            
-            print(cnt, "개로 탐지됨")
-            box_cnt_1.append(cnt)
-            name_1.append(c_name)
-            accuracy_1.append(c_accuracy)
-            boxbnd_1.append(c_boxbnd)
-            # predict_results.append([c_name, cnt, c_accuracy, c_boxbnd])
-            predict_results.append(all_)
-
-            result_all.append(all_)                     
+            print(cnt, "개 유형이 탐지됨")
+            box_cnt_1.append(cnt)           
+            # name_1.append(c_name)
+            # accuracy_1.append(c_accuracy)
+            # boxbnd_1.append(c_boxbnd)            
+                      
+            predict_results= predict_results.append(all_)
 
             frame_cnt-=1
 
@@ -272,8 +269,16 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
             vid_writer.write(detected_image)
 
         
-        # print('정확도:', accuracy_1)
-        np_cnt_1 = np.array(box_cnt_1).astype(np.int64)
+        names = ['label','accuracy','box_cnt','xmin','ymin', 'xmax', 'ymax']
+        #names = ['label','accuracy','box_cnt','boxbnd']
+        predict_results.columns = names        
+        avg = np.array(predict_results['accuracy']).astype(np.float32)
+        print(np.mean(avg))        
+        cnt = predict_results.shape[0]
+
+        cnt_by_label=predict_results['label'].value_counts(normalize=True)
+        print(cnt_by_label.to_string())           
+
 
         vid_writer.release()
         cap.release()
@@ -285,15 +290,13 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
         # acc_avg = np.mean(np_accuracy_1)
         # sum_cnt = np.sum(np_cnt_1)
-        # result_str = f'탐지개체수 합: {sum_cnt}: 탐지정확도:{acc_avg}'
-        # 
-        result_str ='학습완료'     
-
+        result_str = f'탐지개체수 합: {cnt}: 탐지정확도:{np.mean(avg)*100 :.2f}' 
+        
         # 모델예측결과 출력
         self.result_display(result_str)
-
-        # df =pd.DataFrame(result_all)        
-        # df.to_csv('test.csv')      
+        self.append_log_msg('=== 야생동물 유형별 탐지 정확도=====')
+        self.append_log_msg(cnt_by_label.to_string())
+                  
 
         return predict_results    
 
@@ -312,14 +315,11 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         # process image
         start = time.time()
         # 모델 예측
-        boxes, scores, labels = model.predict_on_batch(np.expand_dims(img_array, axis=0))
-
-        if is_print:
-            # print("object detection 처리 시간: ", round(time.time() - start,5))
-            print('남은 플레임 수', frame_cnt, total_frame)  
+        boxes, scores, labels = model.predict_on_batch(np.expand_dims(img_array, axis=0))        
         
         # correct for image scale
-        boxes /= scale    
+        boxes /= scale
+        box_cnt_all=[]    
         box_cnt = 0
         boxbnd=[]
         accuracy=[]
@@ -328,7 +328,6 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         name=[]
         all_list=[]
         
-        
         # visualize detections
         # box는 np.array 데이터 형식
         for box, score, label in zip(boxes[0], scores[0], labels[0]):
@@ -336,11 +335,12 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
             if score < 0.5:
                 break
 
-            color = label_color(label)
+            color = label_color(label)            
 
             b = box.astype(int)
-            box_cnt+=1 
-            print("=====유형수",len(boxes[0]))
+
+            # 물체탐지 박스 개수
+            box_cnt+=1
             # box 경계 두께 지정
             linewidth = 5
             
@@ -355,29 +355,43 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
             # draw_caption(draw_img, b, caption)
             self.modified_draw_caption(draw_img, b, caption, color) 
 
+
             accuracy.append(acc) #### [99 99]
             score_p.append(score_percent)
             target_label.append(label) ### [wild wild]
             name.append(self.labels_to_names_seq[label]) ### [wild wild]
             boxbnd.append(b.tolist()) #### [1 1 1 1 2 2 2 2]
-            
-            # 탐지동물, 정확도, 탐지수, 박스영역좌표(xmin, ymin, xmax, ymax)
-            # 수정해야 할 곳
-            all_item = f'{self.labels_to_names_seq[label]},{score},{box_cnt}, {b[0]},{b[1]},{b[2]},{b[3]}'
-            all_list=all_item.split(',') 
-            # print('all is:', all_list)
+            box_cnt_all.append(box_cnt)
+
+            if box is None:
+                print('box_cnt', box_cnt)
+
+            all_item = f'{self.labels_to_names_seq[label]},{score},{box_cnt}, {b[0]},{b[1]},{b[2]},{b[3]}' 
+            # 탐지동물, 정확도, 탐지수, 박스영역좌표(xmin, ymin, xmax, ymax) 
+            all_list.append(all_item.split(','))
         
         if is_print:
-            print("이미지 processing 시간: ", round(time.time() - start,5))
-            print(f"탐지된 {name} 수는 {box_cnt}개 입니다.")            
-            print(f" {name} 객체의 탐지정확도는 \n {accuracy}입니다.")
-            #--------------박스크기-----------------------------------------
-            # print('boxes is', box)
-            #--------------박스크기-----------------------------------------
-            result_msg = f"{name} 탐지개체 수: {box_cnt}, 탐지정확도: {accuracy}, 처리시간:{round(time.time() - start,5)}"   
+            # print("이미지 1장 processing 시간: ", round(time.time() - start,5))
+            # print(f" 탐지된 유형은 {name}로 {box_cnt}개 입니다.")            
+            # print(f" {name} 유형별 탐지정확도는 \n {accuracy}입니다.")
+            pass 
+
+        result_msg = f"{name} 탐지유형 수: {box_cnt}, 탐지정확도: {accuracy}, 처리시간:{round(time.time() - start,5)}"  
 
         self.append_log_msg(result_msg)
+
+        # print(name) 
+        # print(score_p)        
+        # print(box_cnt_all)
+        # print(boxbnd)
+        # print(len(boxbnd))  
+
+        # all_col = {'name': name, 'score:': score_p, 'box_cnt': box_cnt_all, 'xmin':boxbnd}
+        # df = pd.DataFrame(all_col)
+        # print(df)         
+      
         return draw_img, box_cnt, name, score_p, boxbnd, all_list
+
 
     def modified_draw_caption(self, image, box, caption, color):
         """ Draws a caption above the box in an image."""
