@@ -21,6 +21,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import pyqtSlot, pyqtSignal, QDir, Qt, QUrl, QThread
 
 from opencv2 import VideoDisplay
+from graph_viewer import graphDisplay
+
 
 from ui_py.ExeDialog_ui_v1 import Ui_Dialog # 1. ui를 py로 변환된 파일을 임포트해서
 
@@ -125,6 +127,8 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         else:
             QMessageBox.about(self, "Warning", "파일을 선택하지 않았습니다.")
 
+        
+
     
     @pyqtSlot()    
     def retina_predict(self):          
@@ -147,12 +151,21 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.start = time.time()  
         created_time = str(math.ceil(self.start))      
 
-        if self.results:
+        if self.results and self.result is not None:
             # csv_path = os.path.join(self.results, created_time + '_result.csv')
-            csv_path = os.path.join(self.results, self.FILE_PREFIX + '_result_' + self.created + '.csv')                           
-            self.predict_results.to_csv(csv_path)
-            self.append_log_msg(csv_path + ' 에 모델평가 결과 저장완료')
-            self.exitButtonDlg.setEnabled(True)       
+            self.csv_path = os.path.join(self.results, self.FILE_PREFIX + '_result_' + self.created + '.csv')                           
+            self.predict_results.to_csv(self.csv_path, index=False)
+            self.append_log_msg(self.csv_path + ' 에 모델평가 결과 저장완료')
+            self.exitButtonDlg.setEnabled(True)
+
+            self.displayGraph()
+        
+
+    def displayGraph(self):
+
+        graph = graphDisplay(self.csv_path) # 외부 라이브러리 연결
+        graph.exec_() # 외부 라이브러리 실행(graphDisplay.py)
+
     
     @pyqtSlot()
     def exitCall(self):        
@@ -239,7 +252,7 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         predict_results=pd.DataFrame()      
 
         
-        while True: #frame_cnt > (total_frame - 10):
+        while True: #frame_cnt > (total_frame - 3):
 
             hasFrame, image_frame = cap.read()
             if not hasFrame:
