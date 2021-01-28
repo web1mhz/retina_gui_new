@@ -16,9 +16,10 @@ from keras_retinanet.utils.image import read_image_bgr, preprocess_image, resize
 from keras_retinanet.utils.visualization import draw_box, draw_caption
 from keras_retinanet.utils.colors import label_color
 
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QWidget, QApplication, QFileDialog, QDialog, QMessageBox
 from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.QtCore import pyqtSlot, pyqtSignal, QDir, Qt, QUrl, QThread
+from PyQt5.QtCore import QByteArray, QDir, QThread, QTimer, QUrl, Qt, pyqtSignal, pyqtSlot
+from PyQt5.QtGui import QMovie
 
 from opencv2 import VideoDisplay
 from graph_viewer import graphDisplay
@@ -26,8 +27,38 @@ from graph_viewer import graphDisplay
 
 from ui_py.ExeDialog_ui_v1 import Ui_Dialog # 1. ui를 py로 변환된 파일을 임포트해서
 
+
+class WorkerThread(QThread):   
+    
+    def __init__(self, parent=None):
+        super(WorkerThread, self).__init__(parent)
+
+    def run(self):
+        time.sleep(5)
+
+class LoadingScreen(QWidget):
+
+    def __init__(self):       
+        super().__init__()
+        self.setFixedSize(64,64)
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.CustomizeWindowHint)
+        self.label_animation = QLabel(self)
+        
+        self.movie = QMovie('resource/loading.gif')
+             
+      
+    def startAnimation(self):        
+        self.label_animation.setMovie(self.movie)
+        self.movie.start()
+        self.show()
+             
+
+    def stopAnimation(self):
+        self.movie.stop()
+        self.close()  
+
 class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클래스를 불러오고
-    def __init__(self):
+    def __init__(self, in_file):
         super().__init__()
 
         # 1. 화면구성
@@ -35,9 +66,19 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
         # 2. 변수 선언
 
-        self.fname=''
-        self.result_mp4=''        
-        
+        self.fname=in_file
+        self.result_mp4=''
+
+        # ====================================
+        self.workerThread = WorkerThread()
+        # ====================================  
+              
+        # self.loading_screen = LoadingScreen()
+
+       
+         
+                   
+         
         # ---- 날짜 초기화 -------------------------------------------------------------------
         self.now = datetime.datetime.now()
         self.nowDatetime = self.now.strftime('%Y-%m-%d %H:%M:%S')
@@ -50,7 +91,7 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         # self.labels_to_names_seq = {0: 'wildboar'}
         # --------------------------클래스명 변경---------------------------------------------- 
 
-        # 기준경로 설정 ------------------------------------------------------------------------
+        # 기준경로 설정 * 필수 : 경로오류가 안나오게 하려면------------------------------------------------------------------------
         self.bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname('main.py')))
         print(self.bundle_dir)
         # ------------------------------------------------------------------------------------
@@ -59,7 +100,6 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.sess = self.get_session()      
 
         self.retinanet_init()
-
 
         # ---- 위젯 초기화 -------------------------------------------------------------------
         self.inputlineEdit.setEnabled(False)
@@ -71,13 +111,17 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.radioButton_3.setEnabled(False)
 
         # 3. 버튼과 기능 연결 -----------------------------------------------------------------
-        self.toolInputButton.clicked.connect(self.input_file)
+        
+        if self.fname != '':
+            self.exit_file()
+        else :
+            self.toolInputButton.clicked.connect(self.input_file)
         self.toolSaveButton.clicked.connect(self.save_file)
         self.runExeButton.clicked.connect(self.retina_predict)
         self.exitButtonDlg.clicked.connect(self.exitCall)
-        self.logOutputButton.clicked.connect(self.saveResults)   
-  
+        self.logOutputButton.clicked.connect(self.saveResults)        
 
+        
     # 텐셔플로우 섹션 초기화 -----------------------------------------------------------------
     def get_session(self):        
         config = tf.ConfigProto()
@@ -88,19 +132,40 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
     def retinanet_init(self):
 
-        model = 'model/retina5_model.h5'
+        # self.loading_screen.startAnimation()     
 
+        model = 'model/retina5_model.h5'
         # self.bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname('main.py')))
         self.data_path = os.path.abspath(os.path.join(self.bundle_dir, model))
         self.model_path = self.data_path
         self.retina_model = models.load_model(self.model_path, backbone_name='resnet50')
 
+        # self.loading_screen.stopAnimation()
+
+    def processData(self):
+        self.workerThread.start()
+        QMessageBox.information(self, '성공', '성공')
 
 
     # 버튼과 연결된 기능 @pyqtSlot() 관련 함수 시작
+
+    def exit_file(self):
+
+        if self.fname:           
+            self.inputlineEdit.setText(self.fname)
+            self.log_infile()
+            self.toolSaveButton.setEnabled(True)
+            self.runExeButton.setEnabled(True)
+
+        else:
+            QMessageBox.about(self, "Warning", "파일을 선택하지 않았습니다.") 
+            
     @pyqtSlot()
-    def input_file(self):    
-        self.fname, _ = QFileDialog.getOpenFileName(self, "Open Movie",'.', "Video Files (*.mp4 *.avi *.mov)")
+    def input_file(self):
+        
+        if self.fname =='':
+            self.fname, _ = QFileDialog.getOpenFileName(self, "Open Movie",'.', "Video Files (*.mp4 *.avi *.mov)")
+
         if self.fname:           
             self.inputlineEdit.setText(self.fname)
             self.log_infile()
@@ -128,7 +193,6 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
             QMessageBox.about(self, "Warning", "파일을 선택하지 않았습니다.")
 
         
-
     
     @pyqtSlot()    
     def retina_predict(self):          
@@ -140,7 +204,9 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
 
         if self.fname and self.result_mp4:
+
             self.predict_results = self.detect_video_retina(self.retina_model, self.fname, self.result_mp4)
+
             self.logOutputButton.setEnabled(True)
         else:
             QMessageBox.about(self, "Warning", "파일을 선택하지 않았습니다.")
@@ -453,6 +519,12 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
    
 if __name__ == "__main__":    
     app = QApplication(sys.argv)
+
+    # 자체파일 실행
+    # in_file ='data/wildboar05.MP4'
+    # main = ExeDialog(in_file)
+    # 자체파일 실행 끝
+
     main = ExeDialog()
     main.show()
     app.exec_()   

@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 import pandas as pd
 import datetime
+import glob
 
 
 from PyQt5.QtWidgets import *
@@ -46,7 +47,9 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
          # 비디오 파일경로 초기화
         self.fileName=''
         self.fileName_result=''
-        self.inputFile=''       
+        self.inputFile=''
+
+        self.is_open = False       
 
 
         # 프로그램 화면 설정
@@ -120,7 +123,7 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
 
         # 비디오 관련 기능 버튼 시작 --------------------------------------------------------
         self.horizontalSlider.sliderMoved.connect(self.setPosition)
-        self.horizontalSlider_2.sliderMoved.connect(self.setPosition)
+        self.horizontalSlider_2.sliderMoved.connect(self.setPosition_r)
 
         self.mediaPlayer.stateChanged.connect(self.mediaStateChanged)
         self.mediaPlayer.positionChanged.connect(self.positionChanged)
@@ -171,13 +174,20 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
         self.tgDialog.exec_()
     
     @pyqtSlot()
-    def retinaExeDlg(self):  
-       
-        exeDialog = ExeDialog()       
-        exeDialog.exec_()                 
+    def retinaExeDlg(self):
 
+        if self.is_open:
+            exeDialog = ExeDialog(self.fileName)
+            self.is_open=False
+        else : 
+            exeDialog = ExeDialog('')
+            self.is_open=False
+            
+        exeDialog.exec_()        
+        
         self.fname = exeDialog.fname
-        self.result_mp4 = exeDialog.result_mp4         
+        self.result_mp4 = exeDialog.result_mp4              
+                   
 
         if self.fname != '' and self.result_mp4 !='':
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fname)))
@@ -193,26 +203,51 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
 
     @pyqtSlot()
     def openFile(self):
-        substring = ['image', 'output']        
+
+        # substring = ['image', 'output'] 
+        # 
+        #        
         self.fileName, _ = QFileDialog.getOpenFileName(self, "Open Movie",
                 '.', "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv *.mov)")       
 
         if self.fileName != '':
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName)))            
             self.mediaPlayer.play()                       
-            self.playButton.setEnabled(True)        
+            self.playButton.setEnabled(True)
+            self.is_open = True        
            
 
-        if self.fileName != '' and 'output' in self.fileName:
-            self.fileName_result = os.path.splitext(self.fileName)[0].replace('output', 'result') + '.mp4'
-            self.mediaPlayer_result.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName_result)))
-            # self.mediaPlayer_result.play()           
-            self.resultButton.setEnabled(True)
+        if self.fileName != '': # and 'output' in self.fileName:
+            # self.fileName_result = os.path.splitext(self.fileName)[0].replace('output', 'result') + '.mp4'
+
+            # check = self.fileName_result = os.path.splitext(self.fileName)[0] + '_result' + '.mp4'
+            self.fileName_result = self.find_result(self.fileName)
+            if self.fileName_result !='': #and check is not None:
+                self.mediaPlayer_result.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName_result)))
+                self.mediaPlayer_result.play()
+                self.resultButton.setEnabled(True)
             
 
+        print('파일검증')
         print(os.path.splitext(self.fileName)[0].replace('image', 'result') + '.mp4')
-        print(os.path.basename(self.fileName).replace('image', 'result'))   
+        print(os.path.basename(self.fileName).replace('image', 'result'))  
+
+
+    def find_result(self, file_name):
+
+        list_file = glob.glob('results/*.mp4')
         
+        file_name = os.path.basename(file_name)
+        
+        f_list=[]
+
+        for i in list_file:
+            file = os.path.basename(i).split('.')[0]    
+            if file_name.split('.')[0] in file:        
+                f_list.append(i)
+
+        return f_list[-1] 
+            
 
     @pyqtSlot()   
     def play(self):    
@@ -235,7 +270,7 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
             
 
     # 동영상 관련 파일은 스트림 형태이기때문에 @pyqtSlot()를 
-    # 활성화 하면 state, position 등 관련 오류가 발생하는 것 같음
+    # 활성화하면 state, position 등 관련 오류가 발생하는 것 같음
     #@pyqtSlot() 
     def mediaStateChanged(self, state):
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
@@ -283,11 +318,14 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
     #@pyqtSlot()
     def handleError(self):
         self.playButton.setEnabled(False)
-        self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
+        # self.errorLabel.setText("Error: " + self.mediaPlayer.errorString())
+        self.showStatusMsg('입력영상에 대한 예측파일 없음')
+
 
     def handleError_r(self, position):
         self.resultButton.setEnabled(False)
-        self.errorLabel.setText("Error: " + self.mediaPlayer_result.errorString())
+        # self.errorLabel.setText("Error: " + self.mediaPlayer_result.errorString())
+        self.showStatusMsg('입력영상에 대한 예측파일 없음')
 
 
 if __name__ == "__main__":
