@@ -186,7 +186,9 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
         exeDialog.exec_()        
         
         self.fname = exeDialog.fname
-        self.result_mp4 = exeDialog.result_mp4              
+        self.result_mp4 = exeDialog.result_mp4
+
+                   
                    
 
         if self.fname != '' and self.result_mp4 !='':
@@ -199,11 +201,11 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
             self.mediaPlayer_result.setMedia(QMediaContent(QUrl.fromLocalFile(self.result_mp4)))
             self.resultButton.setEnabled(True)
             self.mediaPlayer_result.play()
+        
                
 
     @pyqtSlot()
     def openFile(self):
-
         # substring = ['image', 'output'] 
         # 
         #        
@@ -219,26 +221,29 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
 
         if self.fileName != '': # and 'output' in self.fileName:
             # self.fileName_result = os.path.splitext(self.fileName)[0].replace('output', 'result') + '.mp4'
-
-            # check = self.fileName_result = os.path.splitext(self.fileName)[0] + '_result' + '.mp4'
+            # check = self.fileName_result = os.path.splitext(self.fileName)[0] + '_result' + '.mp4'            
+            
             self.fileName_result = self.find_result(self.fileName)
+
             if self.fileName_result !='': #and check is not None:
                 self.mediaPlayer_result.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName_result)))
                 self.mediaPlayer_result.play()
-                self.resultButton.setEnabled(True)
-            
+                self.resultButton.setEnabled(True)            
 
-        print('파일검증')
-        print(os.path.splitext(self.fileName)[0].replace('image', 'result') + '.mp4')
-        print(os.path.basename(self.fileName).replace('image', 'result'))  
+        # print('파일검증')
+        # print(os.path.splitext(self.fileName)[0].replace('image', 'result') + '.mp4')
+        # print(os.path.basename(self.fileName).replace('image', 'result'))  
 
 
     def find_result(self, file_name):
-
-        list_file = glob.glob('results/*.mp4')
-        
+             
         file_name = os.path.basename(file_name)
-        
+        mp4_file = 'results/*.mp4'
+        # 경로 오류가 나올때 사용
+        self.results_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname('main.py')))
+        self.data_path = os.path.abspath(os.path.join(self.results_dir, mp4_file))
+        list_file = glob.glob(self.data_path)
+
         f_list=[]
 
         for i in list_file:
@@ -246,7 +251,11 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
             if file_name.split('.')[0] in file:        
                 f_list.append(i)
 
-        return f_list[-1] 
+        if len(f_list) == 0:
+            QMessageBox.about(self, '예측파일', '예측된 파일이 없습니다.')
+            return None
+
+        return f_list[0] 
             
 
     @pyqtSlot()   
@@ -276,10 +285,12 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             self.playButton.setText('')
+            self.is_open=True
         else:
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
             self.playButton.setText('')
-
+            self.is_open=True
+            
     def mediaStateChanged_r(self, state):
         if self.mediaPlayer_result.state() == QMediaPlayer.PlayingState:
             self.resultButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
