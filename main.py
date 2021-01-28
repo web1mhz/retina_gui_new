@@ -101,11 +101,13 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
         self.playButton.setEnabled(False)
         self.resultButton.setEnabled(False)
         self.predictButton.setEnabled(False)
+        self.actionopen.setEnabled(False)
 
     def initAuthActive(self):        
         # self.playButton.setEnabled(True)
         # self.resultButton.setEnabled(True)
-        self.predictButton.setEnabled(True)
+        self.actionopen.setEnabled(True)
+        # self.predictButton.setEnabled(True)
         self.exitButton.clicked.connect(QtCore.QCoreApplication.instance().quit) # 종료  
 
 
@@ -165,50 +167,38 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
             self.showStatusMsg('로그인 성공')
 
         else:
-            QMessageBox.about(self, '인증오류', ' 아이디 또는 비밀번호 인증오류')  
+            QMessageBox.about(self, '인증오류', ' 아이디 또는 비밀번호 인증오류') 
 
-
-    @pyqtSlot()
-    def retinaExeDlg1(self):
-        self.tgDialog = ExeDialog()       
-        self.tgDialog.exec_()
     
     @pyqtSlot()
     def retinaExeDlg(self):
-
-        if self.is_open:
+        
+        if self.fileName !='':
             exeDialog = ExeDialog(self.fileName)
-            self.is_open=False
+            # self.is_open=False
         else : 
             exeDialog = ExeDialog('')
-            self.is_open=False
+            # self.is_open=False
             
         exeDialog.exec_()        
-        
+
         self.fname = exeDialog.fname
         self.result_mp4 = exeDialog.result_mp4
-
-                   
-                   
 
         if self.fname != '' and self.result_mp4 !='':
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fname)))
             self.playButton.setEnabled(True)
-            self.mediaPlayer.play()
-                  
+            self.mediaPlayer.play()                  
 
         if self.fname != '' and self.result_mp4 !='':            
             self.mediaPlayer_result.setMedia(QMediaContent(QUrl.fromLocalFile(self.result_mp4)))
             self.resultButton.setEnabled(True)
-            self.mediaPlayer_result.play()
-        
-               
+            self.mediaPlayer_result.play() 
 
     @pyqtSlot()
     def openFile(self):
         # substring = ['image', 'output'] 
-        # 
-        #        
+               
         self.fileName, _ = QFileDialog.getOpenFileName(self, "Open Movie",
                 '.', "Video Files (*.mp4 *.flv *.ts *.mts *.avi *.wmv *.mov)")       
 
@@ -216,7 +206,8 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
             self.mediaPlayer.setMedia(QMediaContent(QUrl.fromLocalFile(self.fileName)))            
             self.mediaPlayer.play()                       
             self.playButton.setEnabled(True)
-            self.is_open = True        
+            self.predictButton.setEnabled(True)
+            # self.is_open = True        
            
 
         if self.fileName != '': # and 'output' in self.fileName:
@@ -262,8 +253,7 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
     def play(self):    
 
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:            
-            self.mediaPlayer.pause()
-            
+            self.mediaPlayer.pause()            
         else:
             self.mediaPlayer.play()
                           
@@ -285,11 +275,11 @@ class BaseWindow(QMainWindow, Ui_MainWindow): # 2. 여기에 임포트된 파일
         if self.mediaPlayer.state() == QMediaPlayer.PlayingState:
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPause))
             self.playButton.setText('')
-            self.is_open=True
+            # self.is_open=True
         else:
             self.playButton.setIcon(self.style().standardIcon(QStyle.SP_MediaPlay))
             self.playButton.setText('')
-            self.is_open=True
+            # self.is_open=True
             
     def mediaStateChanged_r(self, state):
         if self.mediaPlayer_result.state() == QMediaPlayer.PlayingState:

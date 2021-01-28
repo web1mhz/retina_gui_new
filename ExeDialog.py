@@ -102,6 +102,7 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.retinanet_init()
 
         # ---- 위젯 초기화 -------------------------------------------------------------------
+        self.toolInputButton.setEnabled(False)
         self.inputlineEdit.setEnabled(False)
         self.savetolineEdit.setEnabled(False)
         self.runExeButton.setEnabled(False)
