@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(['main.py'],
-             pathex=['G:\\python_work\\retina_gui_new'],
+             pathex=['E:\\python_work\\retina_gui_new'],
              binaries=[],
              datas=[],
              hiddenimports=[],

@@ -74,10 +74,6 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         # ====================================  
               
         # self.loading_screen = LoadingScreen()
-
-       
-         
-                   
          
         # ---- 날짜 초기화 -------------------------------------------------------------------
         self.now = datetime.datetime.now()
