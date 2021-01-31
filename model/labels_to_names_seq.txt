@@ -1,0 +1,5 @@
+0, marten
+1, raccoon
+2, waterdeer
+3, wildboar
+4, wildcat

@@ -68,6 +68,8 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
         self.fname=in_file
         self.result_mp4=''
+        self.label_to_names_txt ='model/labels_to_names_seq.txt'
+        self.eng_to_kor_txt = 'model/eng_to_kor.txt'
 
         # ====================================
         self.workerThread = WorkerThread()
@@ -78,9 +80,10 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         # ---- 날짜 초기화 -------------------------------------------------------------------
         self.now = datetime.datetime.now()
         self.nowDatetime = self.now.strftime('%Y-%m-%d %H:%M:%S')
-        
+
+                
         # --------------------------야생동물 탐지 클래스명 변경----------------------------------
-        self.labels_to_names_seq = {0: 'marten',1:'raccoon',2:'waterdeer', 3:'wildboar', 4:'wildcat'} # 포유류 5종 wildlife5_xxxx
+        # self.labels_to_names_seq = {0: 'marten',1:'raccoon',2:'waterdeer', 3:'wildboar', 4:'wildcat'} # 포유류 5종 wildlife5_xxxx
         # labels_to_names_seq = {0: 'marten',1:'waterdeer', 2:'wildboar', 3:'wildcat'} # 포유류 4종 wildlife4_xxxx
         # labels_to_names_seq = {0: 'marten',1:'waterdeer', 2:'wildboar'} # 포유류 3종 wildlife3_xxxx
         # labels_to_names_seq = {0: 'raccoon',1:'wildcat'} # 포유류 2종 wildlife2_xxxx
@@ -129,7 +132,10 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
 
     def retinanet_init(self):
 
-        # self.loading_screen.startAnimation()     
+        # self.loading_screen.startAnimation()
+
+        # 클래스 이름 불러오기         
+        self.labels_to_names_seq = self.labels_to_names(self.label_to_names_txt)     
 
         model = 'model/retina5_model.h5'
         # self.bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname('main.py')))
@@ -138,6 +144,16 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.retina_model = models.load_model(self.model_path, backbone_name='resnet50')
 
         # self.loading_screen.stopAnimation()
+
+    
+    def labels_to_names(self, path):    
+        d = {}
+        with open(path, encoding='utf-8') as f:
+            for line in f:
+                (key, val) = line.split(',')
+                d[int(key)] = val.strip()        
+        return d 
+
 
     def processData(self):
         self.workerThread.start()
@@ -197,7 +213,10 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         self.append_log_msg('야생동물 탐지가 시작되었습니다.') 
 
         if self.radioButton:
-            QMessageBox.about(self, "Info", "중대형포유류 탐지모델이 선택됨.\n (담비, 너구리, 고라니, 멧돼지, 삵)")
+            dict_name= self.labels_to_names(self.eng_to_kor_txt)
+            classtype = dict_name.values()
+            
+            QMessageBox.about(self, "Info", "중대형포유류 탐지모델이 선택됨.\n" + str(list(classtype)))
 
 
         if self.fname and self.result_mp4:
@@ -518,7 +537,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # 자체파일 실행
-    # in_file ='data/wildboar05.MP4'
+    # in_file ='results\wildboar04_gt_result_1611758812.mp4'
     # main = ExeDialog(in_file)
     # 자체파일 실행 끝
 
