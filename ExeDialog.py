@@ -137,7 +137,7 @@ class ExeDialog(QDialog, Ui_Dialog): # 2. 여기에 임포트된 파일의 클�
         # 클래스 이름 불러오기         
         self.labels_to_names_seq = self.labels_to_names(self.label_to_names_txt)     
 
-        model = 'model/retina5_model.h5'
+        model = 'model/retina7_model.h5'
         # self.bundle_dir = getattr(sys, '_MEIPASS', os.path.abspath(os.path.dirname('main.py')))
         self.data_path = os.path.abspath(os.path.join(self.bundle_dir, model))
         self.model_path = self.data_path

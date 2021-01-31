@@ -80,10 +80,10 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)  # 전체화면
 
     # 자체파일 실행
-    csv_file = 'results\wildboar04_result_1611756037.csv'   
-    w = graphDisplay(csv_file) # 전체화면에 차지하는 영역
+    # csv_file = 'results\wildboar04_result_1611756037.csv'   
+    # w = graphDisplay(csv_file) # 전체화면에 차지하는 영역
     # 자체파일 실행 끝
 
-    # w = graphDisplay() # 전체화면에 차지하는 영역
+    w = graphDisplay() # 전체화면에 차지하는 영역
     w.show() # 전체화면에 차지하는 영역을 보여주고
     app.exec_() # 전체 화면 종료        

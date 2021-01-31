@@ -1,5 +1,7 @@
-0, marten
-1, raccoon
-2, waterdeer
-3, wildboar
-4, wildcat
+0, fox
+1, marten
+2, raccoon
+3, sciurus
+4, waterdeer
+5, wildboar
+6, wildcat
