@@ -6,8 +6,6 @@ from PyQt5.QtCore import pyqtSlot, pyqtSignal
 
 from ui_py.graph_viewer_ui import Ui_Dialog
 
-
-
 class graphDisplay(QDialog, Ui_Dialog):
     def __init__(self, csv_file):
         super().__init__() 
@@ -57,10 +55,7 @@ class graphDisplay(QDialog, Ui_Dialog):
         # y_list =[10,20,30,40,50,60]
         # y_err = [-1, 10, -30,-1,5,-5]
 
-        data_name =['Detection Count', 'Accuracy']   
-
-
-
+        data_name =['Detection Count', 'Accuracy'] 
         
         self.bar = self.graphViewer.canvas.axes.bar(cnt_x, cnt_y , label= data_name[0])
         self.rects = self.graphViewer.canvas.axes.plot(acc_x, acc_y, 'r--', label= data_name[1])  
@@ -73,7 +68,6 @@ class graphDisplay(QDialog, Ui_Dialog):
         self.imgprintButton.setEnabled(True)
 
     def save(self):
-
         pix = self.graphViewer.grab()       
         filename=QFileDialog.getSaveFileName(self,'Save Image Graph', '.', "Image Files (*.png *.jpeg)")[0]
         pix.save(filename)
@@ -86,10 +80,10 @@ if __name__ == '__main__':
     app = QApplication(sys.argv)  # 전체화면
 
     # 자체파일 실행
-    # csv_file = 'results/wildboar04_gt_result_1611807899.csv'   
-    # w = graphDisplay(csv_file) # 전체화면에 차지하는 영역
+    csv_file = 'results\wildboar04_result_1611756037.csv'   
+    w = graphDisplay(csv_file) # 전체화면에 차지하는 영역
     # 자체파일 실행 끝
 
-    w = graphDisplay() # 전체화면에 차지하는 영역
+    # w = graphDisplay() # 전체화면에 차지하는 영역
     w.show() # 전체화면에 차지하는 영역을 보여주고
     app.exec_() # 전체 화면 종료        

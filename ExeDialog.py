@@ -537,7 +537,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
 
     # 자체파일 실행
-    # in_file ='results\wildboar04_gt_result_1611758812.mp4'
+    # in_file ='results\wildboar04_result_1611756679.mp4'
     # main = ExeDialog(in_file)
     # 자체파일 실행 끝
 
